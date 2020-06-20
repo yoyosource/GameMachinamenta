@@ -69,6 +69,7 @@ public abstract class Loop implements Runnable {
 
     public final void setTarget(int target) {
         this.target = target;
+        nsPerTick = 1000000000.0 / target;
     }
 
     public final double getUnprocessed() {
