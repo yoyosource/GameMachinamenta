@@ -7,11 +7,9 @@ import engine.system.screen.TickEvent;
 
 import java.awt.*;
 
-@Screen(name = "Test", ups = 1, fps = 1)
-@LaunchScreen
+@Screen(name = "Hugo", ups = 1, fps = 1)
 @Resource(source = "preview.png", name = "test")
-@ResourceLoader(name = "Hugo")
-public class TestScreen {
+public class TestScreenTest {
 
     @ScreenInit
     public void screenInit(ScreenEvent event) {
