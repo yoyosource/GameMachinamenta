@@ -72,6 +72,10 @@ public abstract class Loop implements Runnable {
         nsPerTick = 1000000000.0 / target;
     }
 
+    public double getNsPerTick() {
+        return nsPerTick;
+    }
+
     public final double getUnprocessed() {
         return unprocessed;
     }

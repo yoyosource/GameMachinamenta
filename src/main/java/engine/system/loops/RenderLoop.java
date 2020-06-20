@@ -1,5 +1,8 @@
 package engine.system.loops;
 
+import engine.GameEngine;
+import engine.system.screen.RenderEvent;
+
 public class RenderLoop extends Loop {
 
     public RenderLoop(int target, String name) {
@@ -8,6 +11,6 @@ public class RenderLoop extends Loop {
 
     @Override
     public void tick() {
-        //TODO Put RenderLoop tick
+        GameEngine.gameEngine.render();
     }
 }

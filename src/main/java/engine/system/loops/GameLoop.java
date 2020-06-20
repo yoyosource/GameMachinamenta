@@ -1,5 +1,8 @@
 package engine.system.loops;
 
+import engine.GameEngine;
+import engine.system.screen.TickEvent;
+
 public class GameLoop extends Loop {
 
     public GameLoop(int target, String name) {
@@ -8,6 +11,6 @@ public class GameLoop extends Loop {
 
     @Override
     public void tick() {
-        //TODO Put GameLoop tick
+        GameEngine.gameEngine.tick(new TickEvent(getNsPerTick()));
     }
 }
