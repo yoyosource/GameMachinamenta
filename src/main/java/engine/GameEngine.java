@@ -1,6 +1,7 @@
 package engine;
 
 import engine.annotations.game.Game;
+import engine.annotations.screen.Screen;
 import org.reflections.Reflections;
 
 import java.lang.reflect.Constructor;
@@ -22,7 +23,7 @@ public class GameEngine {
         List<Class<?>> classes = new ArrayList<>(gameClass);
         Object object;
         if (gameClass.size() == 1) {
-            object = getGameEngine(classes.get(0));
+            object = createObject(classes.get(0));
         } else {
             if (args.length != 1) {
                 return;
@@ -32,13 +33,20 @@ public class GameEngine {
                 return;
             }
             if (classes.size() == 1) {
-                object = getGameEngine(classes.get(0));
+                object = createObject(classes.get(0));
             } else {
                 return;
             }
         }
         System.out.println(object);
         System.out.println(gameClass);
+        System.out.println(getScreens());
+    }
+
+    private static List<Class<?>> getScreens() {
+        Reflections reflections = new Reflections("");
+        Set<Class<?>> screenClass = reflections.getTypesAnnotatedWith(Screen.class);
+        return screenClass.stream().filter(GameEngine::validClass).collect(Collectors.toList());
     }
 
     private static boolean validClass(Class<?> clazz) {
@@ -58,7 +66,7 @@ public class GameEngine {
         }
     }
 
-    public static Object getGameEngine(Class<?> clazz) {
+    public static Object createObject(Class<?> clazz) {
         try {
             Constructor<?> constructor = clazz.getDeclaredConstructor();
             return constructor.newInstance();
