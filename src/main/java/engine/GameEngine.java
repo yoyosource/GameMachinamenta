@@ -19,6 +19,13 @@ import java.util.stream.Collectors;
 
 public class GameEngine {
 
+    private List<ScreenObject> screenObjects;
+    private ScreenObject current = null;
+
+    private Object gameObject;
+
+    public static GameEngine gameEngine;
+
     public static void main(String[] args) {
         Set<Class<?>> gameClass = new Reflections("").getTypesAnnotatedWith(Game.class).stream().filter(GameEngine::validClass).collect(Collectors.toSet());
         if (gameClass.isEmpty()) {
@@ -42,9 +49,13 @@ public class GameEngine {
                 return;
             }
         }
-        System.out.println(object);
-        System.out.println(gameClass);
-        List<ScreenObject> screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
+        gameEngine = new GameEngine(object);
+    }
+
+    public GameEngine(Object gameObject) {
+        this.gameObject = gameObject;
+        System.out.println(gameObject);
+        screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
         System.out.println(screenObjects);
     }
 
@@ -188,18 +199,17 @@ class ScreenObject {
         executeMethod(screenCloseMethod, event);
     }
 
+    private char getChar(Method method, char c) {
+        return method == null ? ' ' : c;
+    }
+
     @Override
     public String toString() {
         return "ScreenObject{" +
                 "object=" + object +
-                ", screenInitMethod=" + screenInitMethod +
-                ", screenCloseMethod=" + screenCloseMethod +
-                ", renderPreMethod=" + renderPreMethod +
-                ", renderMainMethod=" + renderMainMethod +
-                ", renderPostMethod=" + renderPostMethod +
-                ", tickPreMethod=" + tickPreMethod +
-                ", tickMainMethod=" + tickMainMethod +
-                ", tickPostMethod=" + tickPostMethod +
+                ", S(" + getChar(screenInitMethod, 'I') + getChar(screenCloseMethod, 'C') + ")" +
+                ", R(" + getChar(renderPreMethod, 'P') + getChar(renderMainMethod, 'M') + getChar(renderPostMethod, 'P') + ")" +
+                ", T(" + getChar(tickPreMethod, 'P') + getChar(tickMainMethod, 'M') + getChar(renderPostMethod, 'P') + ")" +
                 '}';
     }
 
