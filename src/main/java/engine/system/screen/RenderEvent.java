@@ -4,6 +4,10 @@ import java.awt.*;
 
 public class RenderEvent {
 
-    public Graphics2D g;
+    public final Graphics2D g;
+
+    public RenderEvent(Graphics2D g) {
+        this.g = g;
+    }
 
 }

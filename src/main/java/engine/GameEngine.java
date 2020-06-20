@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,8 @@ public class GameEngine {
         }
         System.out.println(object);
         System.out.println(gameClass);
-        System.out.println(getScreens());
+        List<ScreenObject> screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
+        System.out.println(screenObjects);
     }
 
     private static List<Class<?>> getScreens() {
@@ -123,7 +125,7 @@ class ScreenObject {
                 screenInitMethod = method;
             }
             if (validMethod(method, ScreenClose.class, ScreenEvent.class)) {
-                screenInitMethod = method;
+                screenCloseMethod = method;
             }
         }
     }
@@ -154,6 +156,51 @@ class ScreenObject {
                 tickPostMethod = method;
             }
         }
+    }
+
+    private void executeMethod(Method method, Object... objects) {
+        if (method == null) return;
+        try {
+            method.setAccessible(true);
+            method.invoke(object, objects);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+
+        }
+    }
+
+    public void render(RenderEvent event) {
+        executeMethod(renderPreMethod, event);
+        executeMethod(renderMainMethod, event);
+        executeMethod(renderPostMethod, event);
+    }
+
+    public void tick(TickEvent event) {
+        executeMethod(tickPreMethod, event);
+        executeMethod(tickMainMethod, event);
+        executeMethod(tickPostMethod, event);
+    }
+
+    public void init(ScreenEvent event) {
+        executeMethod(screenInitMethod, event);
+    }
+
+    public void close(ScreenEvent event) {
+        executeMethod(screenCloseMethod, event);
+    }
+
+    @Override
+    public String toString() {
+        return "ScreenObject{" +
+                "object=" + object +
+                ", screenInitMethod=" + screenInitMethod +
+                ", screenCloseMethod=" + screenCloseMethod +
+                ", renderPreMethod=" + renderPreMethod +
+                ", renderMainMethod=" + renderMainMethod +
+                ", renderPostMethod=" + renderPostMethod +
+                ", tickPreMethod=" + tickPreMethod +
+                ", tickMainMethod=" + tickMainMethod +
+                ", tickPostMethod=" + tickPostMethod +
+                '}';
     }
 
 }
