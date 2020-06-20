@@ -51,6 +51,8 @@ public class GameEngine {
 
     ResourceManager resourceManager = new ResourceManager();
 
+    Map<String, ResourceManager> managerMap = new HashMap<>();
+
     public static GameEngine gameEngine;
     static Logging logging = new Logging("Game Engine");
 
@@ -103,19 +105,6 @@ public class GameEngine {
         setCurrentScreen(launchScreens.get(0));
         logging.add("Game Engine (screenObjects) " + screenObjects);
 
-        Runnable taskQueueRunnable = () -> {
-            while (true) {
-                if (taskQueue.isNotEmpty()) {
-                    taskQueue.getTask().run();
-                }
-                ThreadUtils.sleep(1);
-            }
-        };
-        Thread taskQueueThread = new Thread(taskQueueRunnable);
-        taskQueueThread.setName("TaskQueueThread");
-        taskQueueThread.setDaemon(true);
-        taskQueueThread.start();
-
         createFrame();
     }
 
@@ -127,6 +116,13 @@ public class GameEngine {
         if (screenObject == null) {
             return;
         }
+        if (!managerMap.containsKey(current.getName())) {
+            for (int i = 0; i < current.resourceCount(); i++) {
+                addTask(new Task(() -> {
+                    if (current != null) current.loadResources();
+                }), TaskQueue.TaskPriority.MIDDLE);
+            }
+        }
         screenObject.init(new ScreenEvent());
         gameLoop.setTarget(screenObject.getTPS());
         renderLoop.setTarget(screenObject.getUPS());
@@ -137,6 +133,20 @@ public class GameEngine {
         renderLoop.startLoop();
 
         gameObject.loadIcon();
+
+        Runnable taskQueueRunnable = () -> {
+            while (true) {
+                if (taskQueue.isNotEmpty()) {
+                    System.out.println(taskQueue);
+                    taskQueue.getTask().run();
+                }
+                ThreadUtils.sleep(1);
+            }
+        };
+        Thread taskQueueThread = new Thread(taskQueueRunnable);
+        taskQueueThread.setName("TaskQueueThread");
+        taskQueueThread.setDaemon(true);
+        taskQueueThread.start();
     }
 
     private void createFrame() {
@@ -232,6 +242,9 @@ class ScreenObject {
     private Method tickMainMethod = null;
     private Method tickPostMethod = null;
 
+    private Resource[] resources;
+    private int index = 0;
+
     public ScreenObject(Object o) {
         if (o.getClass().getDeclaredAnnotationsByType(Screen.class).length != 1) {
             return;
@@ -312,6 +325,28 @@ class ScreenObject {
 
     public ScreenType getScreenType() {
         return annotation.type();
+    }
+
+    public int resourceCount() {
+        if (resources == null) {
+            resources = object.getClass().getAnnotationsByType(Resource.class);
+        }
+        return resources.length;
+    }
+
+    public void loadResources() {
+        ResourceManager manager = GameEngine.gameEngine.managerMap.get(getName());
+        if (manager == null) {
+            manager = new ResourceManager();
+            GameEngine.gameEngine.managerMap.put(getName(), manager);
+        }
+        if (resources == null) {
+            resources = object.getClass().getAnnotationsByType(Resource.class);
+        }
+        if (index < resources.length) {
+            manager.loadAsync( resources[index].source(), resources[index].name());
+            index++;
+        }
     }
 
     public void render(RenderEvent event) {

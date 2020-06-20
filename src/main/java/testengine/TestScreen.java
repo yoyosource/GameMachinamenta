@@ -10,6 +10,7 @@ import java.awt.*;
 
 @Screen(name = "Test", ups = 1, fps = 1)
 @LaunchScreen
+@Resource(source = "preview.png", name = "test")
 public class TestScreen {
 
     @ScreenInit
@@ -29,7 +30,6 @@ public class TestScreen {
 
     @Render
     public void render(RenderEvent event) {
-        System.out.println(event.graphics2D);
         event.graphics2D.setColor(Color.BLACK);
         event.graphics2D.drawString("Hello World", 10, 10);
     }
@@ -41,6 +41,7 @@ public class TestScreen {
 
     @TickPre
     public void tickPre(TickEvent event) {
+
 
     }
 

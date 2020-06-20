@@ -4,11 +4,6 @@ import engine.annotations.game.*;
 import engine.system.game.GameEvent;
 import engine.system.game.GameExceptionEvent;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-
 @Game(name = "Test")
 @Icon(source = "preview.png")
 public class TestGame {
