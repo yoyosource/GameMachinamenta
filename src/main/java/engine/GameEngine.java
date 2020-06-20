@@ -20,11 +20,14 @@ import yapi.manager.worker.Task;
 import yapi.runtime.ThreadUtils;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferStrategy;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class GameEngine {
@@ -40,6 +43,7 @@ public class GameEngine {
 
     GameLoop gameLoop;
     RenderLoop renderLoop;
+    BufferStrategy bs;
 
     public static GameEngine gameEngine;
     static Logging logging = new Logging("Game Engine");
@@ -129,7 +133,7 @@ public class GameEngine {
 
     private void createFrame() {
         jFrame = new JFrame();
-        jFrame.setContentPane(gameView);
+        jFrame.add(gameView);
         jFrame.setVisible(true);
         jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         jFrame.setFocusTraversalKeysEnabled(false);
@@ -154,8 +158,18 @@ public class GameEngine {
 
     public void render() {
         addTask(new Task(() -> {
-            jFrame.repaint();
-            if (current != null) current.render(new RenderEvent(gameView.graphics2D));
+            if(current == null) return;;
+            if(bs == null) {
+                gameView.createBufferStrategy(3);
+                bs = gameView.getBufferStrategy();
+                return;
+            }
+            Graphics2D g = (Graphics2D) bs.getDrawGraphics();
+
+            current.render(new RenderEvent(g));
+
+            g.dispose();
+            bs.show();
         }), TaskQueue.TaskPriority.HIGH);
     }
 
