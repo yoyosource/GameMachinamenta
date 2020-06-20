@@ -331,6 +331,14 @@ class GameObject {
         UtilsObject.executeMethod(tickExceptionMethod, object, new GameExceptionEvent(exception));
     }
 
+    @Override
+    public String toString() {
+        return "GameObject{" +
+                "object=" + object +
+                ", M(" + UtilsObject.getChar(startUpMethod, 'I') + ")" +
+                ", E(" + UtilsObject.getChar(screenInitExceptionMethod, 'I') + UtilsObject.getChar(screenCloseExceptionMetod, 'C') + UtilsObject.getChar(renderExceptionMethod, 'R') + UtilsObject.getChar(tickExceptionMethod, 'T') +
+                '}';
+    }
 }
 
 class UtilsObject {
