@@ -165,6 +165,9 @@ public class GameEngine {
             }
             Graphics2D g = (Graphics2D) bs.getDrawGraphics();
 
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, jFrame.getWidth(), jFrame.getHeight());
+
             current.render(new RenderEvent(g));
 
             g.dispose();
