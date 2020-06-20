@@ -17,5 +17,4 @@ public @interface Screen {
 
     int fps() default 60;
     int ups() default 60;
-
 }
