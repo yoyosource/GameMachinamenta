@@ -10,6 +10,8 @@ import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
 import engine.utils.TaskQueue;
 import org.reflections.Reflections;
+import yapi.manager.log.LogManager;
+import yapi.manager.log.Logging;
 import yapi.manager.worker.Task;
 import yapi.runtime.ThreadUtils;
 
@@ -17,10 +19,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GameEngine {
@@ -33,9 +32,12 @@ public class GameEngine {
     TaskQueue taskQueue = new TaskQueue();
 
     public static GameEngine gameEngine;
+    static Logging logging = new Logging("Game Engine");
 
     public static void main(String[] args) {
+        LogManager.setAllowLogDefault();
         Set<Class<?>> gameClass = new Reflections("").getTypesAnnotatedWith(Game.class).stream().filter(GameEngine::validClass).collect(Collectors.toSet());
+        logging.add("Game Object size=" + gameClass.size());
         if (gameClass.isEmpty()) {
             return;
         }
@@ -43,16 +45,21 @@ public class GameEngine {
         Object object;
         if (gameClass.size() == 1) {
             object = createObject(classes.get(0));
+            logging.add("Game Object newInstance=" + object);
         } else {
+            logging.add("Game Object checkArgs=" + Arrays.toString(args));
             if (args.length != 1) {
                 return;
             }
+            logging.add("Game Object getGameWithName=\"" + args[0] + "\"");
             classes = gameClass.stream().filter(c -> validClass(c, args[0])).collect(Collectors.toList());
+            logging.add("Game Object size=" + classes.size());
             if (classes.isEmpty()) {
                 return;
             }
             if (classes.size() == 1) {
                 object = createObject(classes.get(0));
+                logging.add("Game Object newInstance=" + object);
             } else {
                 return;
             }
@@ -62,7 +69,7 @@ public class GameEngine {
 
     public GameEngine(Object gameObject) {
         this.gameObject = new GameObject(gameObject);
-        System.out.println(gameObject);
+        logging.add("Game Engine (GameObject) " + this.gameObject);
         screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
         List<ScreenObject> launchScreens = screenObjects.stream().filter(ScreenObject::isLaunchScreen).collect(Collectors.toList());
         if (launchScreens.size() != 1) {
@@ -70,7 +77,7 @@ public class GameEngine {
             throw new IllegalStateException("Too many LaunchScreen specified");
         }
         current = launchScreens.get(0);
-        System.out.println(screenObjects);
+        logging.add("Game Engine (screenObjects) " + screenObjects);
 
         Runnable taskQueueRunnable = () -> {
             while (true) {
@@ -216,6 +223,7 @@ class ScreenObject {
             UtilsObject.executeMethod(renderMainMethod, object, event);
             UtilsObject.executeMethod(renderPostMethod, object, event);
         } catch (Exception exception) {
+            GameEngine.logging.add("Game Engine (render) " + exception);
             GameEngine.gameEngine.gameObject.renderException(exception);
         }
     }
@@ -226,6 +234,7 @@ class ScreenObject {
             UtilsObject.executeMethod(tickMainMethod, object, event);
             UtilsObject.executeMethod(tickPostMethod, object, event);
         } catch (Exception exception) {
+            GameEngine.logging.add("Game Engine (tick) " + exception);
             GameEngine.gameEngine.gameObject.tickException(exception);
         }
     }
@@ -234,6 +243,7 @@ class ScreenObject {
         try {
             UtilsObject.executeMethod(screenInitMethod, object, event);
         } catch (Exception exception) {
+            GameEngine.logging.add("Game Engine (screenInit) " + exception);
             GameEngine.gameEngine.gameObject.screenInitException(exception);
         }
     }
@@ -242,6 +252,7 @@ class ScreenObject {
         try {
             UtilsObject.executeMethod(screenCloseMethod, object, event);
         } catch (Exception exception) {
+            GameEngine.logging.add("Game Engine (screenClose) " + exception);
             GameEngine.gameEngine.gameObject.screenCloseException(exception);
         }
     }
