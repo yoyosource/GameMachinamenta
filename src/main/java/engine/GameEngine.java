@@ -1,7 +1,10 @@
 package engine;
 
-import engine.annotations.game.Game;
+import engine.annotations.game.*;
 import engine.annotations.screen.*;
+import engine.system.game.GameEvent;
+import engine.system.game.GameException;
+import engine.system.game.GameExceptionEvent;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
@@ -22,12 +25,12 @@ import java.util.stream.Collectors;
 
 public class GameEngine {
 
-    private List<ScreenObject> screenObjects;
-    private ScreenObject current = null;
+    List<ScreenObject> screenObjects;
+    ScreenObject current = null;
 
-    private Object gameObject;
+    GameObject gameObject;
 
-    private TaskQueue taskQueue = new TaskQueue();
+    TaskQueue taskQueue = new TaskQueue();
 
     public static GameEngine gameEngine;
 
@@ -58,9 +61,15 @@ public class GameEngine {
     }
 
     public GameEngine(Object gameObject) {
-        this.gameObject = gameObject;
+        this.gameObject = new GameObject(gameObject);
         System.out.println(gameObject);
         screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
+        List<ScreenObject> launchScreens = screenObjects.stream().filter(ScreenObject::isLaunchScreen).collect(Collectors.toList());
+        if (launchScreens.size() != 1) {
+            if (launchScreens.isEmpty()) throw new IllegalStateException("No LaunchScreen (@LaunchScresn) selected");
+            throw new IllegalStateException("Too many LaunchScreen specified");
+        }
+        current = launchScreens.get(0);
         System.out.println(screenObjects);
 
         Runnable taskQueueRunnable = () -> {
@@ -128,6 +137,7 @@ public class GameEngine {
 class ScreenObject {
 
     private Object object = null;
+    private boolean launchScreen = false;
 
     private Method screenInitMethod = null;
     private Method screenCloseMethod = null;
@@ -144,8 +154,15 @@ class ScreenObject {
         if (o.getClass().getDeclaredAnnotationsByType(Screen.class).length != 1) {
             return;
         }
+        if (o.getClass().getDeclaredAnnotationsByType(LaunchScreen.class).length == 1) {
+            launchScreen = true;
+        }
         object = o;
         init();
+    }
+
+    public boolean isLaunchScreen() {
+        return launchScreen;
     }
 
     private void init() {
@@ -154,22 +171,12 @@ class ScreenObject {
         tickInit();
     }
 
-    private <T extends Annotation> boolean validMethod(Method method, Class<T> annotationClass, Class<?> clazz) {
-        if (method.getDeclaredAnnotationsByType(annotationClass).length != 1) return false;
-        if (method.getParameterCount() != 1) return false;
-        return hasCorrectParameter(method, clazz);
-    }
-
-    private boolean hasCorrectParameter(Method method, Class<?> clazz) {
-        return method.getParameterTypes()[0].getTypeName().equals(clazz.getTypeName());
-    }
-
     private void screenInit() {
         for (Method method : object.getClass().getDeclaredMethods()) {
-            if (validMethod(method, ScreenInit.class, ScreenEvent.class)) {
+            if (UtilsObject.validMethod(method, ScreenInit.class, ScreenEvent.class)) {
                 screenInitMethod = method;
             }
-            if (validMethod(method, ScreenClose.class, ScreenEvent.class)) {
+            if (UtilsObject.validMethod(method, ScreenClose.class, ScreenEvent.class)) {
                 screenCloseMethod = method;
             }
         }
@@ -177,13 +184,13 @@ class ScreenObject {
 
     private void renderInit() {
         for (Method method : object.getClass().getDeclaredMethods()) {
-            if (validMethod(method, RenderPre.class, RenderEvent.class)) {
+            if (UtilsObject.validMethod(method, RenderPre.class, RenderEvent.class)) {
                 renderPreMethod = method;
             }
-            if (validMethod(method, Render.class, RenderEvent.class)) {
+            if (UtilsObject.validMethod(method, Render.class, RenderEvent.class)) {
                 renderMainMethod = method;
             }
-            if (validMethod(method, RenderPost.class, RenderEvent.class)) {
+            if (UtilsObject.validMethod(method, RenderPost.class, RenderEvent.class)) {
                 renderPostMethod = method;
             }
         }
@@ -191,19 +198,154 @@ class ScreenObject {
 
     private void tickInit() {
         for (Method method : object.getClass().getDeclaredMethods()) {
-            if (validMethod(method, TickPre.class, TickEvent.class)) {
+            if (UtilsObject.validMethod(method, TickPre.class, TickEvent.class)) {
                 tickPreMethod = method;
             }
-            if (validMethod(method, Tick.class, TickEvent.class)) {
+            if (UtilsObject.validMethod(method, Tick.class, TickEvent.class)) {
                 tickMainMethod = method;
             }
-            if (validMethod(method, TickPost.class, TickEvent.class)) {
+            if (UtilsObject.validMethod(method, TickPost.class, TickEvent.class)) {
                 tickPostMethod = method;
             }
         }
     }
 
-    private void executeMethod(Method method, Object... objects) {
+    public void render(RenderEvent event) {
+        try {
+            UtilsObject.executeMethod(renderPreMethod, object, event);
+            UtilsObject.executeMethod(renderMainMethod, object, event);
+            UtilsObject.executeMethod(renderPostMethod, object, event);
+        } catch (Exception exception) {
+            GameEngine.gameEngine.gameObject.renderException(exception);
+        }
+    }
+
+    public void tick(TickEvent event) {
+        try {
+            UtilsObject.executeMethod(tickPreMethod, object, event);
+            UtilsObject.executeMethod(tickMainMethod, object, event);
+            UtilsObject.executeMethod(tickPostMethod, object, event);
+        } catch (Exception exception) {
+            GameEngine.gameEngine.gameObject.tickException(exception);
+        }
+    }
+
+    public void init(ScreenEvent event) {
+        try {
+            UtilsObject.executeMethod(screenInitMethod, object, event);
+        } catch (Exception exception) {
+            GameEngine.gameEngine.gameObject.screenInitException(exception);
+        }
+    }
+
+    public void close(ScreenEvent event) {
+        try {
+            UtilsObject.executeMethod(screenCloseMethod, object, event);
+        } catch (Exception exception) {
+            GameEngine.gameEngine.gameObject.screenCloseException(exception);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "ScreenObject{" +
+                "object=" + object +
+                ", S(" + UtilsObject.getChar(screenInitMethod, 'I') + UtilsObject.getChar(screenCloseMethod, 'C') + ")" +
+                ", R(" + UtilsObject.getChar(renderPreMethod, 'P') + UtilsObject.getChar(renderMainMethod, 'M') + UtilsObject.getChar(renderPostMethod, 'P') + ")" +
+                ", T(" + UtilsObject.getChar(tickPreMethod, 'P') + UtilsObject.getChar(tickMainMethod, 'M') + UtilsObject.getChar(renderPostMethod, 'P') + ")" +
+                '}';
+    }
+
+}
+
+class GameObject {
+
+    private Object object = null;
+
+    private Method startUpMethod = null;
+
+    private Method screenInitExceptionMethod = null;
+    private Method screenCloseExceptionMetod = null;
+    private Method renderExceptionMethod = null;
+    private Method tickExceptionMethod = null;
+
+    public GameObject(Object o) {
+        if (o.getClass().getDeclaredAnnotationsByType(Game.class).length != 1) {
+            return;
+        }
+        object = o;
+        init();
+    }
+
+    private void init() {
+        initMethod();
+        exceptionMethod();
+    }
+
+    private void initMethod() {
+        for (Method method : object.getClass().getDeclaredMethods()) {
+            if (UtilsObject.validMethod(method, GameInit.class, GameEvent.class)) {
+                startUpMethod = method;
+            }
+        }
+    }
+
+    private void exceptionMethod() {
+        for (Method method : object.getClass().getDeclaredMethods()) {
+            if (UtilsObject.validMethod(method, GameScreenInitException.class, GameExceptionEvent.class)) {
+                screenInitExceptionMethod = method;
+            }
+            if (UtilsObject.validMethod(method, GameScreenCloseException.class, GameExceptionEvent.class)) {
+                screenCloseExceptionMetod = method;
+            }
+            if (UtilsObject.validMethod(method, GameRenderException.class, GameExceptionEvent.class)) {
+                renderExceptionMethod = method;
+            }
+            if (UtilsObject.validMethod(method, GameTickException.class, GameExceptionEvent.class)) {
+                tickExceptionMethod = method;
+            }
+        }
+    }
+
+    public void executeInit(GameEvent event) {
+        UtilsObject.executeMethod(startUpMethod, object, event);
+    }
+
+    public void screenInitException(Exception exception) {
+        if (screenInitExceptionMethod == null) throw new GameException(exception.getMessage(), exception.getCause());
+        UtilsObject.executeMethod(screenInitExceptionMethod, object, new GameExceptionEvent(exception));
+    }
+
+    public void screenCloseException(Exception exception) {
+        if (screenCloseExceptionMetod == null) throw new GameException(exception.getMessage(), exception.getCause());
+        UtilsObject.executeMethod(screenCloseExceptionMetod, object, new GameExceptionEvent(exception));
+    }
+
+    public void renderException(Exception exception) {
+        if (renderExceptionMethod == null) throw new GameException(exception.getMessage(), exception.getCause());
+        UtilsObject.executeMethod(renderExceptionMethod, object, new GameExceptionEvent(exception));
+    }
+
+    public void tickException(Exception exception) {
+        if (tickExceptionMethod == null) throw new GameException(exception.getMessage(), exception.getCause());
+        UtilsObject.executeMethod(tickExceptionMethod, object, new GameExceptionEvent(exception));
+    }
+
+}
+
+class UtilsObject {
+
+    static <T extends Annotation> boolean validMethod(Method method, Class<T> annotationClass, Class<?> clazz) {
+        if (method.getDeclaredAnnotationsByType(annotationClass).length != 1) return false;
+        if (method.getParameterCount() != 1) return false;
+        return hasCorrectParameter(method, clazz);
+    }
+
+    private static boolean hasCorrectParameter(Method method, Class<?> clazz) {
+        return method.getParameterTypes()[0].getTypeName().equals(clazz.getTypeName());
+    }
+
+    static void executeMethod(Method method, Object object, Object... objects) {
         if (method == null) return;
         try {
             method.setAccessible(true);
@@ -213,38 +355,8 @@ class ScreenObject {
         }
     }
 
-    public void render(RenderEvent event) {
-        executeMethod(renderPreMethod, event);
-        executeMethod(renderMainMethod, event);
-        executeMethod(renderPostMethod, event);
-    }
-
-    public void tick(TickEvent event) {
-        executeMethod(tickPreMethod, event);
-        executeMethod(tickMainMethod, event);
-        executeMethod(tickPostMethod, event);
-    }
-
-    public void init(ScreenEvent event) {
-        executeMethod(screenInitMethod, event);
-    }
-
-    public void close(ScreenEvent event) {
-        executeMethod(screenCloseMethod, event);
-    }
-
-    private char getChar(Method method, char c) {
+    static char getChar(Method method, char c) {
         return method == null ? ' ' : c;
-    }
-
-    @Override
-    public String toString() {
-        return "ScreenObject{" +
-                "object=" + object +
-                ", S(" + getChar(screenInitMethod, 'I') + getChar(screenCloseMethod, 'C') + ")" +
-                ", R(" + getChar(renderPreMethod, 'P') + getChar(renderMainMethod, 'M') + getChar(renderPostMethod, 'P') + ")" +
-                ", T(" + getChar(tickPreMethod, 'P') + getChar(tickMainMethod, 'M') + getChar(renderPostMethod, 'P') + ")" +
-                '}';
     }
 
 }

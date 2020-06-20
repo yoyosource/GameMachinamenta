@@ -6,6 +6,7 @@ import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
 
 @Screen(name = "Test")
+@LaunchScreen
 public class TestScreen {
 
     @ScreenInit
