@@ -5,7 +5,10 @@ import engine.annotations.screen.*;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
+import engine.utils.TaskQueue;
 import org.reflections.Reflections;
+import yapi.manager.worker.Task;
+import yapi.runtime.ThreadUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -23,6 +26,8 @@ public class GameEngine {
     private ScreenObject current = null;
 
     private Object gameObject;
+
+    private TaskQueue taskQueue = new TaskQueue();
 
     public static GameEngine gameEngine;
 
@@ -57,6 +62,35 @@ public class GameEngine {
         System.out.println(gameObject);
         screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
         System.out.println(screenObjects);
+
+        Runnable taskQueueRunnable = () -> {
+            while (true) {
+                if (taskQueue.isNotEmpty()) {
+                    taskQueue.getTask().run();
+                }
+                ThreadUtils.sleep(1);
+            }
+        };
+        Thread taskQueueThread = new Thread(taskQueueRunnable);
+        taskQueueThread.setName("TaskQueueThread");
+        taskQueueThread.setDaemon(true);
+        taskQueueThread.start();
+    }
+
+    public void addTask(Task task, TaskQueue.TaskPriority taskPriority) {
+        taskQueue.addTask(task, taskPriority);
+    }
+
+    public void tick(TickEvent event) {
+        addTask(new Task(() -> {
+            if (current != null) current.tick(event);
+        }), TaskQueue.TaskPriority.HIGH);
+    }
+
+    public void render(RenderEvent event) {
+        addTask(new Task(() -> {
+            if (current != null) current.render(event);
+        }), TaskQueue.TaskPriority.HIGH);
     }
 
     private static List<Class<?>> getScreens() {
