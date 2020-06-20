@@ -2,9 +2,13 @@ package engine;
 
 import engine.annotations.game.*;
 import engine.annotations.screen.*;
+import engine.enums.screen.ScreenType;
 import engine.system.game.GameEvent;
 import engine.system.game.GameException;
 import engine.system.game.GameExceptionEvent;
+import engine.system.loops.GameLoop;
+import engine.system.loops.Loop;
+import engine.system.loops.RenderLoop;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
@@ -16,13 +20,11 @@ import yapi.manager.worker.Task;
 import yapi.runtime.ThreadUtils;
 
 import javax.swing.*;
-import java.awt.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class GameEngine {
@@ -35,6 +37,9 @@ public class GameEngine {
     ScreenObject current = null;
 
     TaskQueue taskQueue = new TaskQueue();
+
+    GameLoop gameLoop;
+    RenderLoop renderLoop;
 
     public static GameEngine gameEngine;
     static Logging logging = new Logging("Game Engine");
@@ -81,11 +86,15 @@ public class GameEngine {
             if (launchScreens.isEmpty()) throw new IllegalStateException("No LaunchScreen (@LaunchScresn) selected");
             throw new IllegalStateException("Too many LaunchScreen specified");
         }
-        current = launchScreens.get(0);
+
+        gameLoop = new GameLoop(1, "GameLoop");
+        renderLoop = new RenderLoop(1, "RenderLoop");
+        setCurrentScreen(launchScreens.get(0));
         logging.add("Game Engine (screenObjects) " + screenObjects);
 
         Runnable taskQueueRunnable = () -> {
             while (true) {
+                System.out.println(taskQueue);
                 if (taskQueue.isNotEmpty()) {
                     taskQueue.getTask().run();
                 }
@@ -100,12 +109,24 @@ public class GameEngine {
         createFrame();
     }
 
+    private void setCurrentScreen(ScreenObject screenObject) {
+        current = screenObject;
+        gameLoop.setTarget(screenObject.getTPS());
+        renderLoop.setTarget(screenObject.getUPS());
+    }
+
     private void createFrame() {
         jFrame = new JFrame();
         jFrame.setContentPane(gameView);
         jFrame.setVisible(true);
         jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         jFrame.setFocusTraversalKeysEnabled(false);
+
+        jFrame.setSize(gameObject.getWidth(), gameObject.getHeight());
+        jFrame.setResizable(gameObject.isResizable());
+        jFrame.setName(gameObject.getName());
+        jFrame.setTitle(gameObject.getName());
+
         jFrame.setLocationRelativeTo(null);
     }
 
@@ -162,6 +183,7 @@ class ScreenObject {
 
     private Object object = null;
     private boolean launchScreen = false;
+    private Screen annotation;
 
     private Method screenInitMethod = null;
     private Method screenCloseMethod = null;
@@ -178,6 +200,7 @@ class ScreenObject {
         if (o.getClass().getDeclaredAnnotationsByType(Screen.class).length != 1) {
             return;
         }
+        annotation = o.getClass().getDeclaredAnnotationsByType(Screen.class)[0];
         if (o.getClass().getDeclaredAnnotationsByType(LaunchScreen.class).length == 1) {
             launchScreen = true;
         }
@@ -232,6 +255,26 @@ class ScreenObject {
                 tickPostMethod = method;
             }
         }
+    }
+
+    public int getTPS() {
+        return annotation.ups();
+    }
+
+    public int getUPS() {
+        return annotation.ups();
+    }
+
+    public int getFPS() {
+        return annotation.fps();
+    }
+
+    public String getName() {
+        return annotation.name();
+    }
+
+    public ScreenType getScreenType() {
+        return annotation.type();
     }
 
     public void render(RenderEvent event) {
@@ -333,6 +376,22 @@ class GameObject {
                 tickExceptionMethod = method;
             }
         }
+    }
+
+    public int getWidth() {
+        return object.getClass().getAnnotationsByType(Game.class)[0].width();
+    }
+
+    public int getHeight() {
+        return object.getClass().getAnnotationsByType(Game.class)[0].height();
+    }
+
+    public String getName() {
+        return object.getClass().getAnnotationsByType(Game.class)[0].name();
+    }
+
+    public boolean isResizable() {
+        return object.getClass().getAnnotationsByType(Game.class)[0].resizable();
     }
 
     public void executeInit(GameEvent event) {

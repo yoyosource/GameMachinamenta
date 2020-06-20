@@ -17,7 +17,7 @@ public class TaskQueue {
     private Queue<Task> middleQueue = new ArrayDeque<>();
     private Queue<Task> highQueue = new ArrayDeque<>();
 
-    public void addTask(Task task, TaskPriority priority) {
+    public synchronized void addTask(Task task, TaskPriority priority) {
         if (priority == TaskPriority.LOW) {
             lowQueue.add(task);
         }
@@ -29,19 +29,19 @@ public class TaskQueue {
         }
     }
 
-    public boolean hasTask() {
+    public synchronized boolean hasTask() {
         return isNotEmpty();
     }
 
-    public boolean isEmpty() {
+    public synchronized boolean isEmpty() {
         return lowQueue.isEmpty() && middleQueue.isEmpty() && highQueue.isEmpty();
     }
 
-    public boolean isNotEmpty() {
+    public synchronized boolean isNotEmpty() {
         return !isEmpty();
     }
 
-    public Task getTask() {
+    public synchronized Task getTask() {
         if (isEmpty()) return null;
         if (!highQueue.isEmpty()) {
             return highQueue.poll();
@@ -55,4 +55,12 @@ public class TaskQueue {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "TaskQueue{" +
+                "lowQueue=" + lowQueue +
+                ", middleQueue=" + middleQueue +
+                ", highQueue=" + highQueue +
+                '}';
+    }
 }

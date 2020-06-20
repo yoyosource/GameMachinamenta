@@ -26,7 +26,7 @@ public class TestScreen {
 
     @Render
     public void render(RenderEvent event) {
-
+        event.graphics2D.drawString("Hello World", 10, 10);
     }
 
     @RenderPost
