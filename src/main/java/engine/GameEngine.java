@@ -14,9 +14,7 @@ import java.util.stream.Collectors;
 public class GameEngine {
 
     public static void main(String[] args) {
-        Reflections reflections = new Reflections("");
-        Set<Class<?>> gameClass = reflections.getTypesAnnotatedWith(Game.class);
-        gameClass = gameClass.stream().filter(GameEngine::validClass).collect(Collectors.toSet());
+        Set<Class<?>> gameClass = new Reflections("").getTypesAnnotatedWith(Game.class).stream().filter(GameEngine::validClass).collect(Collectors.toSet());
         if (gameClass.isEmpty()) {
             return;
         }
@@ -44,9 +42,7 @@ public class GameEngine {
     }
 
     private static List<Class<?>> getScreens() {
-        Reflections reflections = new Reflections("");
-        Set<Class<?>> screenClass = reflections.getTypesAnnotatedWith(Screen.class);
-        return screenClass.stream().filter(GameEngine::validClass).collect(Collectors.toList());
+        return new Reflections("").getTypesAnnotatedWith(Screen.class).stream().filter(GameEngine::validClass).collect(Collectors.toList());
     }
 
     private static boolean validClass(Class<?> clazz) {
