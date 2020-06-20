@@ -5,7 +5,9 @@ import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
 
-@Screen(name = "Test")
+import java.awt.*;
+
+@Screen(name = "Test", ups = 1, fps = 1)
 @LaunchScreen
 public class TestScreen {
 
@@ -26,6 +28,8 @@ public class TestScreen {
 
     @Render
     public void render(RenderEvent event) {
+        System.out.println(event.graphics2D);
+        event.graphics2D.setColor(Color.BLACK);
         event.graphics2D.drawString("Hello World", 10, 10);
     }
 

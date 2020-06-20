@@ -75,6 +75,7 @@ public class GameEngine {
             }
         }
         gameEngine = new GameEngine(object);
+        gameEngine.startLoops();
     }
 
     public GameEngine(Object gameObject) {
@@ -94,7 +95,6 @@ public class GameEngine {
 
         Runnable taskQueueRunnable = () -> {
             while (true) {
-                System.out.println(taskQueue);
                 if (taskQueue.isNotEmpty()) {
                     taskQueue.getTask().run();
                 }
@@ -110,9 +110,21 @@ public class GameEngine {
     }
 
     private void setCurrentScreen(ScreenObject screenObject) {
+        if (current != null) {
+            current.close(new ScreenEvent());
+        }
         current = screenObject;
+        if (screenObject == null) {
+            return;
+        }
+        screenObject.init(new ScreenEvent());
         gameLoop.setTarget(screenObject.getTPS());
         renderLoop.setTarget(screenObject.getUPS());
+    }
+
+    void startLoops() {
+        gameLoop.startLoop();
+        renderLoop.startLoop();
     }
 
     private void createFrame() {
