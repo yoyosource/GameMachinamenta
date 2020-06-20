@@ -15,19 +15,24 @@ import yapi.manager.log.Logging;
 import yapi.manager.worker.Task;
 import yapi.runtime.ThreadUtils;
 
+import javax.swing.*;
+import java.awt.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class GameEngine {
 
-    List<ScreenObject> screenObjects;
-    ScreenObject current = null;
+    JFrame jFrame = null;
+    GameView gameView = new GameView();
 
     GameObject gameObject;
+    List<ScreenObject> screenObjects;
+    ScreenObject current = null;
 
     TaskQueue taskQueue = new TaskQueue();
 
@@ -91,6 +96,17 @@ public class GameEngine {
         taskQueueThread.setName("TaskQueueThread");
         taskQueueThread.setDaemon(true);
         taskQueueThread.start();
+
+        createFrame();
+    }
+
+    private void createFrame() {
+        jFrame = new JFrame();
+        jFrame.setContentPane(gameView);
+        jFrame.setVisible(true);
+        jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        jFrame.setFocusTraversalKeysEnabled(false);
+        jFrame.setLocationRelativeTo(null);
     }
 
     public void addTask(Task task, TaskQueue.TaskPriority taskPriority) {
@@ -103,9 +119,10 @@ public class GameEngine {
         }), TaskQueue.TaskPriority.HIGH);
     }
 
-    public void render(RenderEvent event) {
+    public void render() {
         addTask(new Task(() -> {
-            if (current != null) current.render(event);
+            jFrame.repaint();
+            if (current != null) current.render(new RenderEvent(gameView.graphics2D));
         }), TaskQueue.TaskPriority.HIGH);
     }
 

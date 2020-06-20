@@ -1,7 +1,6 @@
 package engine.system.loops;
 
 import engine.GameEngine;
-import engine.system.screen.RenderEvent;
 
 public class RenderLoop extends Loop {
 
