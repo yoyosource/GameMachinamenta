@@ -1,0 +1,142 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '5.0.0'
+
+    id 'maven-publish'
+}
+
+group 'GameMachinamenta'
+version 'SNAPSHOT'
+
+ext {
+    uberJarName = "${group}-${version}-all.jar"
+    jarName = "${group}-${version}.jar"
+    libs = "${buildDir}/libs"
+
+    publication = mayor + "." + minor + "." + patch
+}
+
+sourceCompatibility = 1.12
+targetCompatibility = 1.12
+
+mainClassName = 'engine.GameEngine'
+
+repositories {
+    jcenter()
+
+    maven {
+        url = uri("https://raw.githubusercontent.com/yoyosource/YAPI/master/releases")
+    }
+}
+
+dependencies {
+    implementation 'yoyosource:YAPI:2.1.0'
+    implementation 'org.reflections:reflections:0.9.12'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+shadowJar {
+    manifest {
+        attributes(
+                'Main-Class': mainClassName
+        )
+    }
+
+    from(rootDir) {
+        include 'LICENSE'
+    }
+    from(rootDir) {
+        include '**/README.md'
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            url = "${rootDir}/releases"
+        }
+    }
+    publications {
+        maven(MavenPublication) {
+            groupId = 'yoyosource'
+            artifactId = 'GameMachinamenta'
+            version = publication
+
+            from components.java
+        }
+    }
+}
+
+task incrementMayor {
+    description 'Increment Mayor'
+    group "GameMachinamenta Release"
+
+    doLast {
+        mayor = Integer.parseInt(mayor) + 1
+        minor = 0
+        patch = 0
+        save()
+    }
+}
+
+task incrementMinor {
+    description 'Increment Minor'
+    group "GameMachinamenta Release"
+
+    doLast {
+        minor = Integer.parseInt(minor) + 1
+        patch = 0
+        save()
+    }
+}
+
+task incrementPatch {
+    description 'Increment Patch'
+    group "GameMachinamenta Release"
+
+    doLast {
+        patch = Integer.parseInt(patch) + 1
+        save()
+    }
+}
+
+private void save() {
+    File f = new File("${new File("${buildDir}").parentFile.toString()}/gradle.properties")
+    String[] strings = f.getText().split("\n")
+    for (int i = 0; i < strings.length; i++) {
+        if (strings[i].startsWith("mayor = ")) {
+            strings[i] = "mayor = " + mayor
+        } else if (strings[i].startsWith("minor = ")) {
+            strings[i] = "minor = " + minor
+        } else if (strings[i].startsWith("patch = ")) {
+            strings[i] = "patch = " + patch
+        }
+    }
+    f.text = String.join("\n", strings)
+}
+
+task publishGameMachinamenta {
+    description 'Publish the YAPI to GitHub Maven'
+    group "GameMachinamenta"
+
+    dependsOn publishMavenPublicationToMavenRepository
+}
+
+task buildYAPI {
+    description 'Build GameMachinamenta'
+    group "GameMachinamenta"
+
+    dependsOn 'build'
+
+    doLast {
+        if ("${buildDir}" == null) {
+            return
+        }
+        delete fileTree("${libs}").matching {
+            exclude("${uberJarName}")
+        }
+        file(libs + "/" + uberJarName).renameTo(file(libs + "/" + jarName))
+    }
+}
