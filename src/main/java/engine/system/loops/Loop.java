@@ -10,12 +10,15 @@ public abstract class Loop implements Runnable {
     private boolean running;
     private int ips, realips;
     private Thread thread;
+    private String name;
 
-    public Loop(int target) {
+    public Loop(int target, String name) {
         this.target = target;
+        this.name = name;
         nsPerTick = 1000000000.0 / target;
         lastTime = System.nanoTime();
         timer = System.currentTimeMillis();
+        thread = new Thread(this, name);
     }
 
     @Override
@@ -78,5 +81,9 @@ public abstract class Loop implements Runnable {
 
     public final int getIps() {
         return realips;
+    }
+
+    public final String getName() {
+        return name;
     }
 }
