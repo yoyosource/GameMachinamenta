@@ -14,22 +14,22 @@ public class TestGame {
 
     @GameScreenInitException
     public void gameScreenInitException(GameExceptionEvent event) {
-
+        event.exception.printStackTrace();
     }
 
     @GameScreenCloseException
     public void gameScreenCloseException(GameExceptionEvent event) {
-
+        event.exception.printStackTrace();
     }
 
     @GameTickException
     public void gameTickException(GameExceptionEvent event) {
-
+        event.exception.printStackTrace();
     }
 
     @GameRenderException
     public void gameRenderException(GameExceptionEvent event) {
-
+        event.exception.printStackTrace();
     }
 
 }
