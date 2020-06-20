@@ -61,7 +61,7 @@ public abstract class Loop implements Runnable {
         running = false;
     }
 
-    public void tick() {}
+    public abstract void tick();
 
     public int getTarget() {
         return target;
