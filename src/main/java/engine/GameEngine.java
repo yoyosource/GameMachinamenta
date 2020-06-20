@@ -162,7 +162,6 @@ public class GameEngine {
             if(bs == null) {
                 gameView.createBufferStrategy(3);
                 bs = gameView.getBufferStrategy();
-                return;
             }
             Graphics2D g = (Graphics2D) bs.getDrawGraphics();
 

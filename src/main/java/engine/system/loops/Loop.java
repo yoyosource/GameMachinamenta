@@ -68,8 +68,18 @@ public abstract class Loop implements Runnable {
     }
 
     public final void setTarget(int target) {
-        this.target = target;
-        nsPerTick = 1000000000.0 / target;
+        if(target > 0 && this.target <= 0 && !isRunning()) {
+            this.target = target;
+            nsPerTick = 1000000000.0 / target;
+            startLoop();
+        }else if(target <= 0 && this.target > 0 && isRunning()) {
+            this.target = target;
+            nsPerTick = 1000000000.0 / target;
+            stopLoop();
+        }else {
+            this.target = target;
+            nsPerTick = 1000000000.0 / target;
+        }
     }
 
     public double getNsPerTick() {
