@@ -1,5 +1,6 @@
 package testengine;
 
+import engine.annotations.game.Icon;
 import engine.annotations.screen.*;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;

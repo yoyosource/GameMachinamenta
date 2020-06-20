@@ -1,6 +1,7 @@
 package engine;
 
 import engine.annotations.game.*;
+import engine.annotations.game.Icon;
 import engine.annotations.screen.*;
 import engine.enums.screen.ScreenType;
 import engine.system.game.GameEvent;
@@ -16,11 +17,14 @@ import engine.utils.TaskQueue;
 import org.reflections.Reflections;
 import yapi.manager.log.LogManager;
 import yapi.manager.log.Logging;
+import yapi.manager.resource.ResourceManager;
 import yapi.manager.worker.Task;
 import yapi.runtime.ThreadUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferStrategy;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -44,6 +48,8 @@ public class GameEngine {
     GameLoop gameLoop;
     RenderLoop renderLoop;
     BufferStrategy bs;
+
+    ResourceManager resourceManager = new ResourceManager();
 
     public static GameEngine gameEngine;
     static Logging logging = new Logging("Game Engine");
@@ -129,6 +135,8 @@ public class GameEngine {
     void startLoops() {
         gameLoop.startLoop();
         renderLoop.startLoop();
+
+        gameObject.loadIcon();
     }
 
     private void createFrame() {
@@ -281,6 +289,7 @@ class ScreenObject {
             }
             if (UtilsObject.validMethod(method, TickPost.class, TickEvent.class)) {
                 tickPostMethod = method;
+
             }
         }
     }
@@ -374,6 +383,15 @@ class GameObject {
         }
         object = o;
         init();
+    }
+
+    public void loadIcon() {
+        if(object.getClass().getDeclaredAnnotationsByType(Icon.class).length != 1) return;
+        String source = object.getClass().getDeclaredAnnotationsByType(Icon.class)[0].source();
+        GameEngine.gameEngine.resourceManager.loadSync(source, "$icon");
+        try {
+            GameEngine.gameEngine.jFrame.setIconImage(GameEngine.gameEngine.resourceManager.getImage("$icon"));
+        } catch (NullPointerException e) {}
     }
 
     private void init() {

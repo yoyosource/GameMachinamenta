@@ -1,5 +1,11 @@
 package engine.system.loops;
 
+import yapi.os.OSCheck;
+import yapi.os.OSType;
+import yapi.os.OSUtils;
+import yapi.runtime.ProcessUtils;
+import yapi.runtime.RuntimeUtils;
+
 public abstract class Loop implements Runnable {
 
     private int target;
