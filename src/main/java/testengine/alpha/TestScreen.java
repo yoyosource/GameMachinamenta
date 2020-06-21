@@ -1,4 +1,4 @@
-package testengine;
+package testengine.alpha;
 
 import engine.annotations.screen.*;
 import engine.system.screen.RenderEvent;
@@ -7,9 +7,11 @@ import engine.system.screen.TickEvent;
 
 import java.awt.*;
 
-@Screen(name = "Hugo", ups = 1, fps = 1)
+@Screen(name = "Test", ups = 1, fps = 1)
+@LaunchScreen
 @Resource(source = "preview.png", name = "test")
-public class TestScreenTest {
+@ResourceLoader(name = "Hugo")
+public class TestScreen {
 
     @ScreenInit
     public void screenInit(ScreenEvent event) {
