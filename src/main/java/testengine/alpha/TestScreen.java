@@ -1,17 +1,20 @@
 package testengine.alpha;
 
 import engine.annotations.screen.*;
+import engine.system.screen.MouseEvent;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
 
 import java.awt.*;
 
-@Screen(name = "Test", ups = 1, fps = 1)
+@Screen(name = "Test", ups = 30, fps = 1)
 @LaunchScreen
 @Resource(source = "preview.png", name = "test")
 @ResourceLoader(name = "Hugo")
 public class TestScreen {
+
+    boolean test = false;
 
     @ScreenInit
     public void screenInit(ScreenEvent event) {
@@ -30,8 +33,10 @@ public class TestScreen {
 
     @Render
     public void render(RenderEvent event) {
-        event.graphics2D.setColor(Color.BLACK);
+        if(!test) event.graphics2D.setColor(Color.BLACK);
+        else event.graphics2D.setColor(Color.RED);
         event.graphics2D.drawString("Hello World", 10, 10);
+        test = false;
     }
 
     @RenderPost
@@ -55,4 +60,11 @@ public class TestScreen {
 
     }
 
+    @MouseClick
+    public void mouseClick(MouseEvent event) {
+        if(event.button == MouseEvent.Click.LEFT_MOUSE_BUTTON) {
+            test = true;
+            System.out.println("Funzt!");
+        }
+    }
 }

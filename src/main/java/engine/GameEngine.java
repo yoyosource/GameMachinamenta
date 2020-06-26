@@ -7,9 +7,11 @@ import engine.enums.screen.ScreenType;
 import engine.system.game.GameEvent;
 import engine.system.game.GameException;
 import engine.system.game.GameExceptionEvent;
+import engine.system.input.MouseInput;
 import engine.system.loops.GameLoop;
 import engine.system.loops.Loop;
 import engine.system.loops.RenderLoop;
+import engine.system.screen.MouseEvent;
 import engine.system.screen.RenderEvent;
 import engine.system.screen.ScreenEvent;
 import engine.system.screen.TickEvent;
@@ -94,6 +96,7 @@ public class GameEngine {
         this.gameObject = new GameObject(gameObject);
         logging.add("Game Engine (GameObject) " + this.gameObject);
         screenObjects = getScreens().parallelStream().map(GameEngine::createObject).filter(Objects::nonNull).map(ScreenObject::new).collect(Collectors.toList());
+        System.out.println("screenObjects = " + screenObjects);
         List<ScreenObject> launchScreens = screenObjects.stream().filter(ScreenObject::isLaunchScreen).collect(Collectors.toList());
         if (launchScreens.size() != 1) {
             if (launchScreens.isEmpty()) throw new IllegalStateException("No LaunchScreen (@LaunchScresn) selected");
@@ -160,6 +163,10 @@ public class GameEngine {
         jFrame.setResizable(gameObject.isResizable());
         jFrame.setName(gameObject.getName());
         jFrame.setTitle(gameObject.getName());
+        //Adding Inputs
+        gameView.addMouseListener(new MouseInput());
+        jFrame.addMouseListener(new MouseInput());
+        gameView.addMouseMotionListener(new MouseInput());
 
         jFrame.setLocationRelativeTo(null);
     }
@@ -242,6 +249,8 @@ class ScreenObject {
     private Method tickMainMethod = null;
     private Method tickPostMethod = null;
 
+    private Method mouseclickMethod = null;
+
     private Resource[] resources;
     private int index = 0;
 
@@ -265,6 +274,7 @@ class ScreenObject {
         screenInit();
         renderInit();
         tickInit();
+        mouseInit();
     }
 
     private void screenInit() {
@@ -303,6 +313,14 @@ class ScreenObject {
             if (UtilsObject.validMethod(method, TickPost.class, TickEvent.class)) {
                 tickPostMethod = method;
 
+            }
+        }
+    }
+
+    private void mouseInit() {
+        for (Method method : object.getClass().getDeclaredMethods()) {
+            if (UtilsObject.validMethod(method, MouseClick.class, MouseEvent.class)) {
+                mouseclickMethod = method;
             }
         }
     }
@@ -364,11 +382,19 @@ class ScreenObject {
         try {
             UtilsObject.executeMethod(tickPreMethod, object, event);
             UtilsObject.executeMethod(tickMainMethod, object, event);
+            mouseTick();
             UtilsObject.executeMethod(tickPostMethod, object, event);
         } catch (Exception exception) {
             GameEngine.logging.add("Game Engine (tick) " + exception);
             GameEngine.gameEngine.gameObject.tickException(exception);
         }
+    }
+
+    private void mouseTick() {
+        for (int i = 0; i < MouseInput.KEYNUMBER; i++) {
+            if(MouseInput.wasPressed(i)) UtilsObject.executeMethod(mouseclickMethod, object, new MouseEvent(new Point(MouseInput.x, MouseInput.y), i));
+        }
+        MouseInput.update();
     }
 
     public void init(ScreenEvent event) {
@@ -396,6 +422,7 @@ class ScreenObject {
                 ", S(" + UtilsObject.getChar(screenInitMethod, 'I') + UtilsObject.getChar(screenCloseMethod, 'C') + ")" +
                 ", R(" + UtilsObject.getChar(renderPreMethod, 'P') + UtilsObject.getChar(renderMainMethod, 'M') + UtilsObject.getChar(renderPostMethod, 'P') + ")" +
                 ", T(" + UtilsObject.getChar(tickPreMethod, 'P') + UtilsObject.getChar(tickMainMethod, 'M') + UtilsObject.getChar(renderPostMethod, 'P') + ")" +
+                ", M(" + UtilsObject.getChar(mouseclickMethod, 'M') + ")" +
                 '}';
     }
 
